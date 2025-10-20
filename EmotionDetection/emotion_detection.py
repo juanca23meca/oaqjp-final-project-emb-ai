@@ -1,36 +1,47 @@
 import requests
 import json
 
-def emotion_detector(text_to_analyze):
-    # URL del servicio Watson NLP
-    url = 'https://sn-watson-emotion.labs.skills.network/v1/watson.runtime.nlp.v1/NlpService/EmotionPredict'
-    
-    # Encabezados requeridos
-    headers = {"grpc-metadata-mm-model-id": "emotion_aggregated-workflow_lang_en_stock"}
-    
-    # Cuerpo de la solicitud
-    input_json = { "raw_document": { "text": text_to_analyze } }
-    
-    # Enviar solicitud POST
-    response = requests.post(url, headers=headers, json=input_json)
-    
-    # Convertir la respuesta JSON en diccionario
-    formatted_response = json.loads(response.text)
-    
-    # Extraer el bloque de emociones
-    emotions = formatted_response["emotionPredictions"][0]["emotion"]
-    
-    # Encontrar la emoción dominante (la de puntuación más alta)
+def emotion_detector(text_to_analyse):
+    if not text_to_analyse or text_to_analyse.strip() == "":
+        # Si el texto está vacío, devolvemos None en todas las emociones
+        return {
+            "anger": None,
+            "disgust": None,
+            "fear": None,
+            "joy": None,
+            "sadness": None,
+            "dominant_emotion": None
+        }
+
+    url = 'https://sn-watson-sentiment-bert.labs.skills.network/v1/watson.runtime.nlp.v1/NlpService/SentimentPredict'
+    myobj = {"raw_document": {"text": text_to_analyse}}
+    headers = {"Content-Type": "application/json"}
+
+    response = requests.post(url, json=myobj, headers=headers)
+    status_code = response.status_code
+
+    if status_code == 400:
+        # Error 400 -> entrada en blanco o inválida
+        return {
+            "anger": None,
+            "disgust": None,
+            "fear": None,
+            "joy": None,
+            "sadness": None,
+            "dominant_emotion": None
+        }
+
+    response_data = response.json()
+    emotions = response_data['emotionPredictions'][0]['emotion']
+
     dominant_emotion = max(emotions, key=emotions.get)
-    
-    # Crear el diccionario de salida con el formato solicitado
-    result = {
-        'anger': emotions['anger'],
-        'disgust': emotions['disgust'],
-        'fear': emotions['fear'],
-        'joy': emotions['joy'],
-        'sadness': emotions['sadness'],
-        'dominant_emotion': dominant_emotion
+
+    return {
+        "anger": emotions['anger'],
+        "disgust": emotions['disgust'],
+        "fear": emotions['fear'],
+        "joy": emotions['joy'],
+        "sadness": emotions['sadness'],
+        "dominant_emotion": dominant_emotion
     }
-    
-    return result
+
